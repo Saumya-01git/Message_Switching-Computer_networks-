@@ -7,7 +7,6 @@ The **Message Switching Simulator** is a web-based project that demonstrates how
 ---
 
 ## LIVE DEMO (Working website)
-https://asini31.github.io/MESSAGE-SWITCHING/
 
 ---
 
