@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Message Switching Simulator</title>
+
+<style>
+body { font-family: Arial; margin:0; background:#f4f4f4; }
+
+header {
+  background:#333;
+  color:white;
+  padding:15px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+nav button {
+  margin-left:10px;
+  padding:8px 12px;
+  border:none;
+  background:#555;
+  color:white;
+  cursor:pointer;
+}
+
+nav button:hover { background:#777; }
+
+section { display:none; padding:20px; }
+#home { display:block; }
+
+.container {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 650px;
+  margin: 20px auto;
+}
+
+.input-row{
+  display:flex;
+  gap:10px;
+}
+
+input,select {
+  width: 100%;
+  padding: 8px;
+  margin: 8px 0;
+  border: 1px solid #ccc;
+}
+
+select{max-width:120px;}
+
+#output {
+  margin-top: 20px;
+  background: #eee;
+  padding: 10px;
+  border-radius: 5px;
+}
+
+button.run {
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  color: white;
+  padding: 12px;
+  border: none;
+  width: 100%;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  margin-top: 12px;
+}
+
+/* VISUAL */
+#nodes {
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:10px;
+  margin-top:20px;
+}
+
+.node {
+  background: #6366f1;
+  color: white;
+  width:50px;
+  height:50px;
+  border-radius: 50%;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  font-weight:bold;
+}
+
+.line{
+  width:40px;
+  height:4px;
+  background:#333;
+  position:relative;
+}
+
+.packet{
+  width:10px;
+  height:10px;
+  background:red;
+  border-radius:50%;
+  position:absolute;
+  animation:move 1.2s linear infinite;
+}
+
+@keyframes move{
+  0%{left:0}
+  100%{left:100%}
+}
+
+/* MODAL UPGRADE */
+.modal{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.7);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  backdrop-filter: blur(5px);
+}
+
+.modal-content{
+  background: linear-gradient(135deg, #ffffff, #f1f5f9);
+  padding:25px;
+  border-radius:15px;
+  width:320px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.2);
+  animation:fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn{
+  from{transform:scale(0.9); opacity:0;}
+  to{transform:scale(1); opacity:1;}
+}
+
+.modal-content h3{
+  text-align:center;
+  margin-bottom:15px;
+}
+
+.modal-content label{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:10px;
+  border-radius:8px;
+  cursor:pointer;
+  transition:all 0.2s ease;
+}
+
+.modal-content label:hover{
+  background:#e0e7ff;
+}
+
+.modal-content input[type="checkbox"]{
+  width:18px;
+  height:18px;
+  cursor:pointer;
+}
+
+.modal-content input[type="checkbox"]:checked + span{
+  font-weight:bold;
+  color:#4f46e5;
+}
+
+.modal-content button.run{
+  margin-top:15px;
+  font-size:15px;
+}
+
+/* FIXED CHECKBOX ALIGNMENT */
+.modal-content label{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:6px;
+}
+
+.modal-content input[type="checkbox"]{
+  margin:0;
+}
+
+/* DEVELOPERS */
+.team {
+  display: flex;
+  justify-content: center;
+  gap: 50px;
+  flex-wrap: wrap;
+}
+
+.member {
+  text-align: center;
+}
+
+.profile-img {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+}
+
+/* DARK MODE */
+.dark-mode {
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+.dark-mode .container {
+  background: #1e293b;
+}
+
+.dark-mode input {
+  background: #0f172a;
+  color: white;
+}
+
+.dark-mode #output {
+  background: #020617;
+  color: white;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<h2>Message Switching Simulator</h2>
+<nav>
+<button onclick="showSection('home')">Home</button>
+<button onclick="showSection('learn')">Learn</button>
+<button onclick="showSection('help')">Help</button>
+<button onclick="showSection('dev')">Developed By</button>
+<button onclick="downloadReport()">Download</button>
+<button onclick="toggleDarkMode()" id="darkBtn">🌙</button>
+</nav>
+</header>
+
+<!-- MODAL -->
+<div id="outputModal" class="modal">
+  <div class="modal-content">
+    <h3>Select Outputs</h3>
+<label><input type="checkbox" id="op_trans"><span>Transmission Time</span></label>
+<label><input type="checkbox" id="op_total"><span>Total Delay</span></label>
+<label><input type="checkbox" id="op_bw"><span>Bandwidth Info</span></label>
+<label><input type="checkbox" id="op_prop"><span>Propagation Delay</span></label>
+<label><input type="checkbox" id="op_through"><span>Throughput</span></label>
+<label><input type="checkbox" id="op_eff"><span>Efficiency</span></label>
+<label><input type="checkbox" id="op_rtt"><span>Round Trip Time (RTT)</span></label>
+    <button class="run" onclick="confirmOutputs()">Continue</button>
+  </div>
+</div>
+
+<!-- HOME -->
+<section id="home">
+<div class="container">
+<h3>Simulation</h3>
+
+<div id="dynamicInputs"></div>
+
+<button class="run" onclick="calculate()">Run Simulation</button>
+
+<div id="output"></div>
+
+<h3>Visualization</h3>
+<div id="nodes"></div>
+
+<button class="run" onclick="location.reload()">Restart</button>
+
+</div>
+</section>
+<!-- LEARN (RESTORED FULL) -->
+<section id="learn">
+<div class="container">
+
+<h3>Concept of Message Switching</h3>
+
+<p><b>Definition:</b> Message Switching is a communication technique where the entire message is transmitted from source to destination through intermediate nodes.</p>
+
+<p><b>Steps:</b></p>
+<ol>
+<li>Message is created at source</li>
+<li>Sent to first node</li>
+<li>Node stores message</li>
+<li>Forwards to next node</li>
+<li>Continues until destination</li>
+</ol>
+
+<p><b>Example:</b></p>
+<p>Message = 2000 bits, Bandwidth = 1000 bps, Nodes = 4</p>
+<p>Total Delay = 6 sec</p>
+
+<h3 style="text-align:center;">Video Explanation</h3>
+
+<div style="text-align:center;">
+<a href="https://www.youtube.com/watch?v=-HlJ4psu5aU" target="_blank">
+<img src="https://img.youtube.com/vi/-HlJ4psu5aU/0.jpg" width="400">
+</a>
+<p>Click to watch</p>
+</div>
+
+<h3>References</h3>
+<ul>
+
+
+
+<li>
+<a href="https://www.tutorialspoint.com/data_communication_computer_network/message_switching.htm" target="_blank">
+Message Switching - TutorialsPoint
+</a>
+</li>
+
+
+
+<li>
+<a href="https://en.wikipedia.org/wiki/Message_switching" target="_blank">
+Message Switching - Wikipedia
+</a>
+</li>
+
+</ul>
+
+<button onclick="showSection('home')">Back</button>
+
+</div>
+</section>
+
+<section id="help">
+<div class="container">
+
+<h3>Detailed Help</h3>
+
+<p><b>1. Select Outputs (Popup):</b><br>
+When you open the Home screen, a popup will appear asking you to choose which results you want to calculate. You can select one or multiple options such as Transmission Time, Total Delay, Bandwidth Info, Propagation Delay, and Throughput.</p>
+
+<p><b>2. Dynamic Input Fields:</b><br>
+Based on the outputs you select, only the required input fields will appear. For example:
+<ul>
+<li>If you select Transmission Time → you need Message Size and Bandwidth</li>
+<li>If you select Total Delay → you also need Number of Nodes</li>
+</ul>
+This avoids unnecessary inputs and makes the simulation easier.</p>
+
+<p><b>3. Message Size:</b><br>
+Represents the total data being sent. You can enter it in:
+<ul>
+<li>bits</li>
+<li>bytes</li>
+<li>kilobytes (KB)</li>
+</ul>
+The system automatically converts everything into bits.</p>
+
+<p><b>4. Bandwidth:</b><br>
+This defines how fast data can travel through the network. You can enter:
+<ul>
+<li>bps (bits per second)</li>
+<li>kbps (kilobits per second)</li>
+</ul>
+Higher bandwidth means faster transmission.</p>
+
+<p><b>5. Number of Nodes:</b><br>
+Nodes include the source, destination, and intermediate devices.  
+More nodes increase delay because the message is stored and forwarded at each node.</p>
+
+<p><b>6. Calculated Outputs:</b></p>
+<ul>
+<li><b>Transmission Time:</b> Time taken to send the message over one link (Message Size ÷ Bandwidth)</li>
+<li><b>Total Delay:</b> Total time taken across all nodes</li>
+<li><b>Bandwidth Info:</b> Displays the bandwidth used</li>
+<li><b>Propagation Delay:</b> Time for signal to travel across nodes (simulated)</li>
+<li><b>Throughput:</b> Effective data transfer rate</li>
+</ul>
+
+<p><b>7. Visualization:</b><br>
+After running the simulation, nodes are displayed graphically.  
+The red moving dot represents the message (packet) traveling between nodes.</p>
+
+<p><b>8. Restart Button:</b><br>
+Resets the simulation and allows you to start fresh.</p>
+
+<p><b>9. Download Report:</b><br>
+Allows you to download the output results as a text file for reference.</p>
+
+<p><b>10. Dark Mode:</b><br>
+Use the 🌙/☀️ button in the top navigation bar to switch between light and dark themes.</p>
+
+<button onclick="showSection('home')">Back</button>
+
+</div>
+</section>
+<!-- DEV (RESTORED FULL) -->
+<section id="dev">
+<div class="container">
+
+<h3 style="text-align:center;">Developed By</h3>
+
+<div class="team">
+
+<div class="member">
+<img src="images/asini.jpeg" class="profile-img">
+<p>Kengua Asini<br>24BYB1132</p>
+</div>
+
+<div class="member">
+<img src="images/saumya.jpeg" class="profile-img">
+<p>Saumya<br>24BYB1130</p>
+</div>
+
+<div class="member">
+<img src="images/chandra2.jpeg" class="profile-img">
+<p>Chandra K<br>24BYB1171</p>
+</div>
+
+</div>
+<h3 style="text-align:center; margin-top:30px;">Guided By</h3>
+
+<div class="team">
+
+  <div class="member">
+    <img src="images/guide.jpg" class="profile-img">
+    <p>Dr. Swaminathan Annadurai<br>Project Guide</p>
+  </div>
+
+</div>
+<button onclick="showSection('home')">Back</button>
+
+</div>
+</section>
+
+
+
+<script>
+
+let selectedOutputs = [];
+
+const inputMap = {
+  trans:["msg","bw","dist"],
+  total:["msg","bw","nodes","proc","queue","dist","speed"],
+  bw:["msg","time"],
+  prop:["dist","speed"],
+  through:["msg","bw","nodes","dist","speed","proc","queue"],
+  eff:["msg","bw","nodes"],
+  rtt:["msg","bw","nodes","dist","speed","proc","queue"]
+
+};
+
+function confirmOutputs(){
+  selectedOutputs=[];
+  if(op_trans.checked) selectedOutputs.push("trans");
+  if(op_total.checked) selectedOutputs.push("total");
+  if(op_bw.checked) selectedOutputs.push("bw");
+  if(op_prop.checked) selectedOutputs.push("prop");
+  if(op_through.checked) selectedOutputs.push("through");
+  if(op_eff.checked) selectedOutputs.push("eff");
+  if(op_rtt.checked) selectedOutputs.push("rtt");
+
+  outputModal.style.display="none";
+  buildInputs();
+}
+
+function buildInputs(){
+  let required=new Set();
+  selectedOutputs.forEach(o=>inputMap[o].forEach(i=>required.add(i)));
+
+  let html="";
+
+  if(required.has("msg")){
+    html+=`<div class="input-row">
+    <input type="number" id="msgValue" placeholder="Message">
+    <select id="msgUnit">
+    <option value="bits">bits</option>
+    <option value="bytes">bytes</option>
+    <option value="kb">KB</option>
+    </select></div>`;
+  }
+
+  if(required.has("bw")){
+    html+=`<div class="input-row">
+    <input type="number" id="bwValue" placeholder="Bandwidth">
+    <select id="bwUnit">
+    <option value="bps">bps</option>
+    <option value="kbps">kbps</option>
+    </select></div>`;
+  }
+
+  if(required.has("dist")){
+    html+=`<div class="input-row">
+    <input type="number" id="distValue" placeholder="Distance">
+    <select id="distUnit">
+    <option value="m">meters</option>
+    <option value="km">km</option>
+    </select></div>`;
+  }
+
+  if(required.has("time")){
+    html+=`<div class="input-row">
+    <input type="number" id="timeValue" placeholder="Transmission Time">
+    <select id="timeUnit">
+    <option value="sec">sec</option>
+    <option value="ms">ms</option>
+    </select></div>`;
+  }
+
+  if(required.has("speed")){
+    html+=`<div class="input-row">
+    <input type="number" id="speedValue" placeholder="Signal Speed">
+    <select id="speedUnit">
+    <option value="mps">m/s</option>
+    <option value="kmps">km/s</option>
+    </select></div>`;
+  }
+
+  if(required.has("proc")){
+    html+=`<div class="input-row">
+    <input type="number" id="procValue" placeholder="Processing Delay">
+    <select id="procUnit">
+    <option value="sec">sec</option>
+    <option value="min">min</option>
+    <option value="hr">hr</option>
+    </select></div>`;
+  }
+
+  if(required.has("queue")){
+    html+=`<div class="input-row">
+    <input type="number" id="queueValue" placeholder="Queuing Delay">
+    <select id="queueUnit">
+    <option value="sec">sec</option>
+    <option value="min">min</option>
+    <option value="hr">hr</option>
+    </select></div>`;
+  }
+
+  if(required.has("nodes")){
+    html+=`<input type="number" id="nodesInput" placeholder="Number of Nodes">`;
+  }
+
+  dynamicInputs.innerHTML=html;
+}
+
+/* CONVERSIONS */
+function convertMsg(v,u){
+  if(u==="bytes") return v*8;
+  if(u==="kb") return v*8000;
+  return v;
+}
+
+function convertBw(v,u){
+  if(u==="kbps") return v*1000;
+  return v;
+}
+
+function convertTime(v,u){
+  if(u==="ms") return v/1000;
+  return v;
+}
+
+function convertDist(v,u){
+  if(u==="km") return v*1000;
+  return v;
+}
+
+function convertSpeed(v,u){
+  if(u==="kmps") return v*1000;
+  return v;
+}
+
+function convertToSeconds(v,u){
+  if(u==="min") return v*60;
+  if(u==="hr") return v*3600;
+  return v;
+}
+
+
+
+function calculate(){
+
+  let msgValue = document.getElementById("msgValue");
+  let msgUnit = document.getElementById("msgUnit");
+
+  let bwValue = document.getElementById("bwValue");
+  let bwUnit = document.getElementById("bwUnit");
+
+  let distValue = document.getElementById("distValue");
+  let distUnit = document.getElementById("distUnit");
+
+  let nodesInput = document.getElementById("nodesInput");
+
+  let procValue = document.getElementById("procValue");
+  let procUnit = document.getElementById("procUnit");
+
+  let queueValue = document.getElementById("queueValue");
+  let queueUnit = document.getElementById("queueUnit");
+
+  let msg = msgValue ? convertMsg(Number(msgValue.value || 1), msgUnit.value) : 1;
+let bw = bwValue ? convertBw(Number(bwValue.value || 1), bwUnit.value) : 1;
+let dist = distValue ? convertDist(Number(distValue.value || 1), distUnit.value) : 1;
+
+let nodes = nodesInput ? Number(nodesInput.value || 2) : 2;
+let proc = procValue ? convertToSeconds(Number(procValue.value || 1), procUnit.value) : 1;
+let queue = queueValue ? convertToSeconds(Number(queueValue.value || 1), queueUnit.value) : 1;
+
+  let transmission = msg/bw;
+
+  let speedValue = document.getElementById("speedValue");
+let speedUnit = document.getElementById("speedUnit");
+
+let speed = speedValue ? convertSpeed(Number(speedValue.value),speedUnit.value) : 1;
+let propagation = speed > 0 ? dist / speed : 0;
+
+  let out="";
+
+  if(selectedOutputs.includes("eff")){
+
+  let totalTime = (nodes > 1) 
+    ? (nodes - 1) * (transmission + propagation + proc + queue)
+    : transmission;
+
+  let efficiency = totalTime > 0 
+    ? (transmission / totalTime) * 100 
+    : 100;
+
+  out+=`<b>Efficiency</b><br>
+  Formula: (Transmission Time / Total Time) × 100<br><br>
+
+  Transmission Time = ${transmission.toFixed(4)} sec<br>
+  Total Time = ${totalTime.toFixed(4)} sec<br><br>
+
+  Efficiency = (${transmission.toFixed(4)} / ${totalTime.toFixed(4)}) × 100<br>
+  = ${efficiency.toFixed(2)} %<br><br>`;
+}
+
+  
+
+  if(selectedOutputs.includes("trans")){
+    out+=`<b>Transmission Time</b><br>
+    Formula: Message Size / Bandwidth<br>
+    = ${msg} / ${bw}<br>
+    = ${transmission.toFixed(4)} sec<br>
+    Distance: ${dist} m<br><br>`;
+  }
+
+  if(selectedOutputs.includes("bw")){
+  let timeValue = document.getElementById("timeValue");
+  let timeUnit = document.getElementById("timeUnit");
+
+  let time = timeValue ? convertTime(Number(timeValue.value) || 1, timeUnit.value) : 1;
+
+  let bandwidth = msg / time;
+
+  out+=`<b>Bandwidth</b><br>
+  Formula: Bandwidth = Message Size / Time<br><br>
+
+  Message Size = ${msg} bits<br>
+  Time = ${time.toFixed(4)} sec<br><br>
+
+  Substitution:<br>
+  = ${msg} / ${time.toFixed(4)}<br><br>
+
+  Bandwidth = ${bandwidth.toFixed(2)} bps<br><br>`;
+}
+
+  if(selectedOutputs.includes("prop")){
+  let speedValue = document.getElementById("speedValue");
+  let speedUnit = document.getElementById("speedUnit");
+
+  let speed = speedValue ? convertSpeed(Number(speedValue.value) || 1, speedUnit.value) : 1;
+
+  let propagation = speed > 0 ? dist / speed : 0;
+
+  out+=`<b>Propagation Delay</b><br>
+  Formula: Distance / Signal Speed<br><br>
+
+  Distance = ${dist} meters<br>
+  Signal Speed = ${speed} m/s<br><br>
+
+  Substitution:<br>
+  = ${dist} / ${speed}<br><br>
+
+  Propagation Delay = ${propagation.toFixed(6)} sec<br><br>`;
+}
+
+  if(selectedOutputs.includes("through")){
+
+  let perNode = transmission + propagation + proc + queue;
+
+  let totalTime = (nodes > 1) 
+    ? (nodes - 1) * perNode
+    : transmission;
+
+  let throughput = totalTime > 0 ? msg / totalTime : 0;
+
+  out+=`<b>Throughput</b><br>
+  Formula: Message Size / Total Time<br><br>
+
+  Message Size = ${msg} bits<br><br>
+
+  Total Time Formula:<br>
+  (Nodes - 1) × (Transmission + Propagation + Processing + Queuing)<br><br>
+
+  = (${nodes} - 1) × (${transmission.toFixed(4)} + ${propagation.toFixed(6)} + ${proc} + ${queue})<br>
+  = (${nodes - 1}) × (${perNode.toFixed(4)})<br>
+  = ${totalTime.toFixed(4)} sec<br><br>
+
+  Throughput Calculation:<br>
+  = ${msg} / ${totalTime.toFixed(4)}<br>
+  = ${throughput.toFixed(2)} bps<br><br>`;
+}
+
+  if(selectedOutputs.includes("total")){
+    let propagation = speed ? dist / speed : 0;
+
+let perNode = transmission + propagation + proc + queue;
+
+let total = (nodes - 1) * perNode;
+
+    out+=`<b>Total Delay</b><br>
+Formula: (Nodes - 1) × (Transmission + Propagation + Processing + Queuing)<br><br>
+
+Transmission = ${transmission.toFixed(4)} sec<br>
+Propagation = ${propagation.toFixed(6)} sec<br>
+Processing = ${proc} sec<br>
+Queuing = ${queue} sec<br><br>
+
+Per Node Delay = ${perNode.toFixed(4)} sec<br>
+
+Total = (${nodes}-1) × ${perNode.toFixed(4)}<br>
+= ${total.toFixed(4)} sec<br><br>`;
+
+}
+
+if(selectedOutputs.includes("rtt")){
+
+  let perNode = transmission + propagation + proc + queue;
+
+  let totalDelay = (nodes > 1) 
+    ? (nodes - 1) * perNode
+    : transmission;
+
+  let rtt = 2 * totalDelay;
+
+  out+=`<b>Round Trip Time (RTT)</b><br>
+
+  <b>Step 1: Total Delay Formula</b><br>
+  Total Delay = (Nodes - 1) × (Transmission + Propagation + Processing + Queuing)<br><br>
+
+  = (${nodes} - 1) × (${transmission.toFixed(4)} + ${propagation.toFixed(6)} + ${proc} + ${queue})<br>
+  = (${nodes - 1}) × (${perNode.toFixed(4)})<br>
+  = ${totalDelay.toFixed(4)} sec<br><br>
+
+  <b>Step 2: RTT Formula</b><br>
+  RTT = 2 × Total Delay<br><br>
+
+  = 2 × ${totalDelay.toFixed(4)}<br>
+  = <b>${rtt.toFixed(4)} sec</b><br><br>`;
+}
+
+document.getElementById("output").innerHTML = out;
+
+  visualize(nodes);
+
+}
+
+function visualize(n){
+  let container = document.getElementById("nodes");
+  container.innerHTML="";
+
+  for(let i=0;i<n;i++){
+    let d=document.createElement("div");
+    d.className="node";
+    d.innerText=i+1;
+    container.appendChild(d);
+
+    if(i<n-1){
+      let line=document.createElement("div");
+      line.className="line";
+      let p=document.createElement("div");
+      p.className="packet";
+      line.appendChild(p);
+      container.appendChild(line);
+    }
+  }
+}
+
+function downloadReport(){
+  let text=document.getElementById("output").innerText || "No output";
+  let blob=new Blob([text],{type:"text/plain"});
+  let a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="report.txt";
+  a.click();
+}
+
+function toggleDarkMode() {
+  document.body.classList.toggle("dark-mode");
+  darkBtn.innerHTML = document.body.classList.contains("dark-mode") ? "☀️" : "🌙";
+}
+
+function showSection(id) {
+  document.querySelectorAll("section").forEach(s=>s.style.display="none");
+  document.getElementById(id).style.display="block";
+}
+
+</script>
+
+</body>
+</html>
