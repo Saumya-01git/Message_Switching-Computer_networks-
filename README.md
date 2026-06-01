@@ -80,9 +80,9 @@ The project can be deployed using:
 
 ## 👨‍💻 Developed By
 
-* Kengua Asini (24BYB1132)
-* Saumya (24BYB1130)
-* Chandra K (24BYB1171)
+* Kengua Asini 
+* Saumya 
+* Chandra K 
 
 ---
 
